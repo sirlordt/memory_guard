@@ -1,70 +1,25 @@
 #include <iostream>
-#include <sigsegv.h>
-#include <csetjmp>
-#include <csignal>
-#include <stdexcept>
-#include <functional>
 #include <thread>
 #include <vector>
+#include <mutex>
+#include "MemoryGuard.hpp"
 
-// Estado local a cada hebra
-thread_local static sigjmp_buf __segv_jmpbuf;
-thread_local static bool __segv_active = false;
+// Global mutex for console output synchronization
+std::mutex console_mutex;
 
-// Manejador SIGSEGV
-int __segv_handler(void* addr, int serious)
-{
-    if (__segv_active)
-    {
-        siglongjmp(__segv_jmpbuf, 1);
-    }
-    return 0; // SIGSEGV_RETURN_FAILURE
+// Helper function for synchronized console output
+template<typename... Args>
+void synchronized_print(Args&&... args) {
+    std::lock_guard<std::mutex> lock(console_mutex);
+    (std::cout << ... << args) << std::endl;
 }
 
-// Inicializador único
-static void __segv_install_handler_once()
-{
-    static bool installed = false;
-    if (!installed)
-    {
-        if (sigsegv_install_handler(__segv_handler) < 0)
-        {
-            std::cerr << "Fallo al instalar el manejador de SIGSEGV" << std::endl;
-            std::exit(1);
-        }
-        installed = true;
-    }
+// Helper function for synchronized error output
+template<typename... Args>
+void synchronized_error(Args&&... args) {
+    std::lock_guard<std::mutex> lock(console_mutex);
+    (std::cerr << ... << args) << std::endl;
 }
-
-// Función interna que lanza excepción si salimos con siglongjmp
-inline void __segv_try_block(const std::function<void()> &block)
-{
-    __segv_install_handler_once();
-
-    __segv_active = true;
-
-    if (sigsetjmp(__segv_jmpbuf, 1) == 0)
-    {
-        block(); // Ejecuta el bloque "_try"
-    }
-    else
-    {
-        __segv_active = false;
-        throw std::runtime_error("SIGSEGV atrapado: acceso inválido a memoria.");
-    }
-
-    __segv_active = false;
-}
-
-// Macros _try y _catch
-#define _try \
-    try      \
-    { __segv_try_block([&]()
-
-#define _catch(type, var)                                                                                                                  \
-                                                                                                                                        ); \
-    }                                                                                                                                      \
-    catch (const type &var)
 
 void thread_function(int id)
 {
@@ -72,29 +27,45 @@ void thread_function(int id)
     {
         _try
         {
-            std::cout << "Hebra " << id << ": Dentro del bloque _try" << std::endl;
-            if (id % 2 == 0)
+            synchronized_print("Thread ", id, ": Starting execution");
+            synchronized_print("Thread ", id, ": Inside _try block");
+            
+            if (id % 3 == 0) // Threads with ID divisible by 3 (thread 0, 3, 6...)
             {
+                // Access a null pointer
                 int *ptr = nullptr;
-                std::cout << "Hebra " << id << ": Intentando acceder a *ptr" << std::endl;
-                *ptr = 10; // Esto generará SIGSEGV en hebras pares
+                synchronized_print("Thread ", id, ": Attempting to access null pointer");
+                *ptr = 10; // This will generate SIGSEGV
             }
-            else
+            else if (id % 3 == 1) // Threads with remainder 1 (thread 1, 4, 7...)
             {
-                std::cout << "Hebra " << id << ": No accederé a un puntero nulo." << std::endl;
+                // Safe execution path
+                synchronized_print("Thread ", id, ": Safely avoiding invalid memory access");
             }
-            std::cout << "Hebra " << id << ": Fuera del bloque _try (si no hubo excepción)." << std::endl;
+            else if (id % 3 == 2) // Threads with remainder 2 (thread 2, 5, 8...)
+            {
+                // Access an invalid memory address (not null)
+                int *ptr = reinterpret_cast<int*>(0xDEADBEEF); // Invalid address
+                synchronized_print("Thread ", id, ": Attempting to access invalid memory address (0xDEADBEEF)");
+                *ptr = 20; // This will also generate SIGSEGV
+            }
+            
+            synchronized_print("Thread ", id, ": Successfully completed _try block");
         }
-        _catch(std::runtime_error, e)
+        _catch(MemoryGuard::InvalidMemoryAccessException, e)
         {
-            std::cerr << "Hebra " << id << ": ¡Excepción capturada!: " << e.what() << std::endl;
+            synchronized_error("Thread ", id, ": Exception caught: ", e.what());
         }
     }
     catch (...)
     {
-        std::cerr << "Hebra " << id << ": Se capturó otra excepción." << std::endl;
+        synchronized_error("Thread ", id, ": Unexpected exception caught");
     }
-    std::cout << "Hebra " << id << ": Terminando." << std::endl;
+    
+    synchronized_print("Thread ", id, ": Terminating");
+    
+    // Unregister the handler when the thread terminates
+    MemoryGuard::unregisterThreadHandler();
 }
 
 int main()
@@ -112,7 +83,7 @@ int main()
         thread.join();
     }
 
-    std::cout << "Todas las hebras han terminado." << std::endl;
+    synchronized_print("Main: All threads have terminated successfully");
 
     return 0;
 }

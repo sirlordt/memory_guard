@@ -6,9 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/workspaces/codespaces-blank/cpp_project/src/main.cpp
-iostream
--
+/workspaces/codespaces-blank/cpp_project/src/MemoryGuard.hpp
 sigsegv.h
 -
 csetjmp
@@ -17,10 +15,32 @@ csignal
 -
 stdexcept
 -
+exception
+-
 functional
+-
+thread
+-
+unordered_map
+-
+mutex
+-
+iostream
+-
+sstream
+-
+iomanip
+-
+
+/workspaces/codespaces-blank/cpp_project/src/main.cpp
+iostream
 -
 thread
 -
 vector
 -
+mutex
+-
+MemoryGuard.hpp
+/workspaces/codespaces-blank/cpp_project/src/MemoryGuard.hpp
 
