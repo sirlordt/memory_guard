@@ -1,1 +1,0 @@
-/usr/bin/c++  -m64 -O3 -DNDEBUG  -m64 CMakeFiles/cpp_project.dir/src/main.cpp.o  -o cpp_project   -L/home/codespace/.conan2/p/b/fmtf4dd5db51de75/p/lib  -Wl,-rpath,/home/codespace/.conan2/p/b/fmtf4dd5db51de75/p/lib -lsigsegv -lpthread /home/codespace/.conan2/p/b/fmtf4dd5db51de75/p/lib/libfmt.a -lm 
