@@ -1,0 +1,3 @@
+/workspaces/codespaces-blank/cpp_project/build/CMakeFiles/rebuild_cache.dir
+/workspaces/codespaces-blank/cpp_project/build/CMakeFiles/edit_cache.dir
+/workspaces/codespaces-blank/cpp_project/build/CMakeFiles/cpp_project.dir

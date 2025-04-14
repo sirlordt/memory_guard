@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/workspaces/codespaces-blank/cpp_project/src/main.cpp
+iostream
+-
+sigsegv.h
+-
+csetjmp
+-
+csignal
+-
+stdexcept
+-
+functional
+-
+thread
+-
+vector
+-
+
