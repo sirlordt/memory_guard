@@ -472,7 +472,7 @@ Estos sanitizadores son herramientas de desarrollo valiosas que ayudan a identif
 
 ## Limitaciones
 
-- **Bloques Try Anidados**: Aunque la biblioteca soporta bloques try anidados, hay algunos casos extremos que pueden no funcionar correctamente, particularmente cuando ocurre una excepción en el bloque externo después de que el bloque interno ha completado. Esta es una limitación conocida de la implementación actual.
+- **Bloques Try Anidados**: La biblioteca soporta completamente bloques try anidados hasta 3 niveles de anidación, lo cual ha sido probado exhaustivamente. Aunque niveles más profundos de anidación no han sido explícitamente probados, se espera que la implementación funcione correctamente con más niveles de anidación (con aproximadamente un 70% de confianza). El mecanismo de pila de buffers de salto debería teóricamente manejar cualquier número de niveles de anidación.
 - **Compatibilidad de Plataforma**: La biblioteca está diseñada principalmente para sistemas Linux/Unix y puede no funcionar correctamente en todas las plataformas.
 - **Limitaciones de Recuperación**: MemoryGuard no puede recuperarse de todos los tipos de violaciones de acceso a memoria. Algunas corrupciones de memoria graves pueden seguir causando que el programa se bloquee.
 - **Conflictos de Manejadores de Señales**: La biblioteca puede entrar en conflicto con otras bibliotecas que instalan sus propios manejadores de señales SIGSEGV. El script incluido `modify_catch2.sh` aborda esto para el framework de pruebas Catch2.

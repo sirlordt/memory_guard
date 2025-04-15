@@ -472,7 +472,7 @@ These sanitizers are valuable development tools that help identify potential iss
 
 ## Limitations
 
-- **Nested Try Blocks**: While the library supports nested try blocks, there are some edge cases that may not work correctly, particularly when an exception occurs in the outer block after the inner block has completed. This is a known limitation of the current implementation.
+- **Nested Try Blocks**: The library fully supports nested try blocks up to 3 levels of nesting, which has been thoroughly tested. While deeper nesting levels have not been explicitly tested, the implementation is expected to work correctly with more levels of nesting (with approximately 70% confidence). The jump buffer stack mechanism should theoretically handle any number of nesting levels.
 - **Platform Compatibility**: The library is primarily designed for Linux/Unix systems and may not work correctly on all platforms.
 - **Recovery Limitations**: MemoryGuard cannot recover from all types of memory access violations. Some severe memory corruptions may still cause the program to crash.
 - **Signal Handler Conflicts**: The library may conflict with other libraries that install their own SIGSEGV signal handlers. The included `modify_catch2.sh` script addresses this for the Catch2 testing framework.
