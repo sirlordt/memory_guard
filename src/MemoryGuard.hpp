@@ -15,6 +15,8 @@
 #include <iomanip>
 #include <vector>
 #include <cstring> // For memcpy
+#include <memory>  // For std::shared_ptr and std::make_shared
+#include <stack>   // For std::stack
 
 namespace MemoryGuard {
 
@@ -32,44 +34,13 @@ public:
     }
 };
 
-// Simple stack for jmp_buf
-struct JmpBufStack {
-    static const int MAX_DEPTH = 10; // Maximum nesting depth
-    jmp_buf buffers[MAX_DEPTH];
-    int top = -1; // -1 means empty
-    
-    bool empty() const {
-        return top < 0;
-    }
-    
-    void push(const jmp_buf& buf) {
-        if (top < MAX_DEPTH - 1) {
-            top++;
-            memcpy(buffers[top], buf, sizeof(jmp_buf));
-        }
-    }
-    
-    jmp_buf& back() {
-        return buffers[top];
-    }
-    
-    void pop() {
-        if (!empty()) {
-            top--;
-        }
-    }
-    
-    // Return the current size of the stack (number of elements)
-    size_t size() const {
-        return top + 1; // top is 0-based, so size is top + 1
-    }
-};
-
 // Structure to store thread-specific information
 struct ThreadContext {
-    JmpBufStack jmpbuf_stack; // Stack of jump buffers for nested try blocks
+    //std::stack<jmp_buf> jmpbuf_stack; // Stack of jump buffers for nested try blocks
+    std::stack<__jmp_buf_tag> jmpbuf_stack; //__jmp_buf_tag
     bool active = false;
-    std::function<int(void*, int)> handler;
+    //std::function<int(void*, int)> handler;
+    std::function<void(int, siginfo_t*, void*)> handler;
 };
 
 // Global map to store thread-specific handlers
@@ -89,30 +60,55 @@ thread_local static std::shared_ptr<ThreadContext> currentThreadContext = nullpt
 thread_local static void* currentFaultAddress = nullptr;
 
 // Thread-specific handler
-inline int threadSegvHandler(void* addr, int serious)
+
+//[[noreturn]] 
+void threadSegvHandler( int signal = 0, siginfo_t *signalInfo = nullptr, void *extra = nullptr )
 {
+    // ********** Very Important ************
+    // Unblock the signal to allow to OS send again
+    sigset_t sigs;
+
+    memset( &sigs, 0 , sizeof( sigset_t ) );
+
+    sigemptyset( &sigs );
+    sigaddset( &sigs, signal );
+    sigprocmask( SIG_UNBLOCK, &sigs, NULL );
+    // ********** Very Important ************
+
     // Store the fault address for later use
-    currentFaultAddress = addr;
+    currentFaultAddress = nullptr;
     
     // We assume that currentThreadContext is not nullptr and is active
     // and that jmpbuf_stack is not empty
     if (!currentThreadContext->jmpbuf_stack.empty()) {
-        longjmp(currentThreadContext->jmpbuf_stack.back(), 1);
+        // Get a reference to the top jump buffer
+        __jmp_buf_tag& jumpBuffer = currentThreadContext->jmpbuf_stack.top();
+        
+        // Convert to jmp_buf for longjmp
+        jmp_buf localJumpBuffer;
+        std::memcpy(localJumpBuffer, &jumpBuffer, sizeof(jmp_buf));
+        
+        // Don't pop the stack here, it will be popped in segvTryBlock after longjmp
+        
+        // Jump back to the setjmp call
+        longjmp(localJumpBuffer, signal ? signal : 1);
     }
-    return 0; // Never executed, but prevents compiler warnings
 }
 
 // Global handler that delegates to the thread-specific handler
-inline int globalSegvHandler(void* addr, int serious)
+//inline int globalSegvHandler(void* addr, int serious)
+//[[noreturn]] 
+void globalSegvHandler( int signal = 0, siginfo_t *signalInfo = nullptr, void *extra = nullptr )
 {
     // If we have a context for the current thread, we use its handler
     if (currentThreadContext && currentThreadContext->active)
     {
-        return currentThreadContext->handler(addr, serious);
+        currentThreadContext->handler(signal, signalInfo, extra );
+        //return currentThreadContext->handler(addr, serious);
     }
     
     // If we don't have a context, we return 0 to indicate that we don't handle the signal
-    return 0;
+    //return 0;
 }
 
 // Registers a handler for the current thread
@@ -161,6 +157,8 @@ inline void installGlobalHandlerOnce()
     static bool installed = false;
     if (!installed)
     {
+
+        /*
         // Use standard signal handling instead of sigsegv library
         if (std::signal(SIGSEGV, [](int sig) {
             // Call our global handler with nullptr as we don't have the exact address
@@ -170,6 +168,19 @@ inline void installGlobalHandlerOnce()
             std::cerr << "Failed to install global SIGSEGV handler" << std::endl;
             std::exit(1);
         }
+        */
+
+        struct sigaction sa;
+
+        sa.sa_flags = SA_SIGINFO;
+          
+        sigemptyset( &sa.sa_mask );
+          
+        sa.sa_sigaction = threadSegvHandler; //(void (*)(int, siginfo_t *, void *))
+          
+        //sigaction( SIGILL, &sa, NULL );
+        //sigaction( SIGFPE, &sa, NULL );
+        sigaction( SIGSEGV, &sa, NULL );            
         installed = true;
     }
 }
@@ -187,13 +198,15 @@ inline void segvTryBlock(const std::function<void()> &block)
     currentThreadContext->active = true;
     
     // Create a new jump buffer for this try block
-    jmp_buf jmpbuf;
+    jmp_buf jmpbuf {};
     
     // Push the jump buffer onto the stack
-    currentThreadContext->jmpbuf_stack.push(jmpbuf);
+    //currentThreadContext->jmpbuf_stack.push(jmpbuf[0]);
     
-    if (setjmp(currentThreadContext->jmpbuf_stack.back()) == 0)
+    //if (setjmp(currentThreadContext->jmpbuf_stack.top()) == 0)
+    if (setjmp(jmpbuf) == 0)
     {
+        currentThreadContext->jmpbuf_stack.push(jmpbuf[0]);
         block(); // Execute the "_try" block
     }
     else

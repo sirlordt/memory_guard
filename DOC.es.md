@@ -10,11 +10,14 @@ MemoryGuard es una biblioteca C++ diseñada para capturar y manejar fallos de se
 - Implementación segura para aplicaciones multi-hilo
 - Mensajes de error detallados que incluyen el tipo de violación de acceso a memoria
 - Soporte tanto para desreferenciación de punteros nulos como para otros accesos inválidos a memoria
+- Soporte para bloques try anidados con propagación adecuada de excepciones
 - Mínima sobrecarga de rendimiento cuando no ocurren excepciones
 
 ## Cómo Funciona
 
-MemoryGuard utiliza la biblioteca `libsigsegv` para instalar un manejador de señales personalizado para señales SIGSEGV. Cuando ocurre un acceso inválido a memoria dentro de un bloque `_try`, el manejador de señales captura el fallo, registra información sobre la dirección del fallo y utiliza `siglongjmp` para devolver el control al bloque `_try`. La biblioteca entonces lanza una excepción personalizada `InvalidMemoryAccessException` que puede ser capturada utilizando la macro `_catch`.
+MemoryGuard utiliza el manejo de señales estándar de C++ para instalar un manejador de señales personalizado para señales SIGSEGV. Cuando ocurre un acceso inválido a memoria dentro de un bloque `_try`, el manejador de señales captura el fallo, registra información sobre la dirección del fallo y utiliza `longjmp` para devolver el control al bloque `_try`. La biblioteca entonces lanza una excepción personalizada `InvalidMemoryAccessException` que puede ser capturada utilizando la macro `_catch`.
+
+La implementación utiliza una pila de buffers de salto para soportar bloques try anidados, permitiendo que las excepciones sean capturadas en el nivel apropiado. El almacenamiento local de hilos asegura que cada hilo tenga su propio contexto, haciendo que la biblioteca sea segura para hilos.
 
 ## Uso
 
@@ -51,25 +54,128 @@ int main() {
 }
 ```
 
+### Uso con Excepciones Estándar de C++
+
+MemoryGuard es compatible con el mecanismo de excepciones estándar de C++. Puedes lanzar y capturar excepciones estándar o personalizadas dentro de bloques `_try`/`_catch` de MemoryGuard. Esto te permite combinar la protección contra fallos de segmentación con el manejo normal de excepciones de C++.
+
+```cpp
+#include <iostream>
+#include <stdexcept>
+#include "MemoryGuard.hpp"
+
+class MiExcepcionPersonalizada : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "Esta es mi excepción personalizada";
+    }
+};
+
+void ejemplo_excepciones_mixtas() {
+    _try {
+        std::cout << "Dentro del bloque _try..." << std::endl;
+        
+        // Puedes lanzar excepciones estándar de C++ dentro de un bloque _try
+        if (rand() % 3 == 0) {
+            throw std::runtime_error("Error de tiempo de ejecución estándar");
+        }
+        else if (rand() % 3 == 1) {
+            throw MiExcepcionPersonalizada();
+        }
+        else {
+            // O causar un fallo de segmentación
+            int* ptr = nullptr;
+            *ptr = 10; // Esto generará SIGSEGV
+        }
+    }
+    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+        // Esta captura solo las excepciones de acceso inválido a memoria
+        std::cerr << "Excepción de MemoryGuard capturada: " << e.what() << std::endl;
+    }
+    
+    // Puedes usar bloques catch estándar para capturar otras excepciones
+    catch(const MiExcepcionPersonalizada& e) {
+        std::cerr << "Excepción personalizada capturada: " << e.what() << std::endl;
+    }
+    catch(const std::exception& e) {
+        std::cerr << "Excepción estándar capturada: " << e.what() << std::endl;
+    }
+    catch(...) {
+        std::cerr << "Excepción desconocida capturada" << std::endl;
+    }
+    
+    // Limpiar recursos
+    MemoryGuard::unregisterThreadHandler();
+}
+
+int main() {
+    srand(time(nullptr));
+    ejemplo_excepciones_mixtas();
+    return 0;
+}
+```
+
+También puedes anidar bloques try-catch estándar dentro de bloques `_try`/`_catch` de MemoryGuard:
+
+```cpp
+#include <iostream>
+#include <stdexcept>
+#include "MemoryGuard.hpp"
+
+void ejemplo_anidado() {
+    _try {
+        std::cout << "Bloque _try externo..." << std::endl;
+        
+        try {
+            std::cout << "Bloque try estándar interno..." << std::endl;
+            throw std::runtime_error("Error dentro del try estándar");
+        }
+        catch(const std::exception& e) {
+            std::cerr << "Capturado en catch estándar: " << e.what() << std::endl;
+            
+            // Podemos causar un fallo de segmentación dentro de un catch estándar
+            // y será capturado por el _catch externo
+            int* ptr = nullptr;
+            *ptr = 10;
+        }
+    }
+    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+        std::cerr << "Capturado en _catch: " << e.what() << std::endl;
+    }
+    
+    MemoryGuard::unregisterThreadHandler();
+}
+```
+
 ### Seguridad en Hilos
 
 MemoryGuard está diseñado para ser seguro en entornos multi-hilo. Cada hilo registra su propio manejador, y la biblioteca mantiene contextos específicos para cada hilo para asegurar que los fallos de segmentación se manejen correctamente en aplicaciones multi-hilo.
 
 ```cpp
-#include <iostream>
 #include "MemoryGuard.hpp"
 #include <thread>
+#include <mutex>
+
+// Mutex global para sincronización de salida de consola
+std::mutex console_mutex;
+
+// Función auxiliar para salida de consola sincronizada
+template<typename... Args>
+void synchronized_print(Args&&... args) {
+    std::lock_guard<std::mutex> lock(console_mutex);
+    (std::cout << ... << args) << std::endl;
+}
 
 void funcion_hilo(int id) {
     _try {
         // Código que podría causar un fallo de segmentación
         if (id % 2 == 0) {
             int* ptr = nullptr;
+            synchronized_print("Hilo ", id, ": Intentando acceder a un puntero nulo");
             *ptr = 10; // Esto normalmente bloquearía el programa
         }
     }
     _catch(MemoryGuard::InvalidMemoryAccessException, e) {
-        std::cerr << "Hilo " << id << " capturó excepción: " << e.what() << std::endl;
+        synchronized_print("Hilo ", id, " capturó excepción: ", e.what());
     }
     
     // Importante: Liberar el registro del manejador cuando el hilo termina
@@ -77,15 +183,64 @@ void funcion_hilo(int id) {
 }
 
 int main() {
-    std::thread t1(funcion_hilo, 1);
-    std::thread t2(funcion_hilo, 2);
+    std::vector<std::thread> threads;
     
-    t1.join();
-    t2.join();
+    for (int i = 0; i < 4; ++i) {
+        threads.emplace_back(funcion_hilo, i);
+    }
+    
+    for (auto& thread : threads) {
+        thread.join();
+    }
     
     std::cout << "Todos los hilos han terminado correctamente" << std::endl;
     
     return 0;
+}
+```
+
+### Bloques Try Anidados
+
+MemoryGuard soporta bloques try anidados, permitiendo escenarios de manejo de errores más complejos:
+
+```cpp
+#include <iostream>
+#include "MemoryGuard.hpp"
+
+void ejemplo_bloques_try_anidados() {
+    _try {
+        std::cout << "Bloque _try externo: Iniciando ejecución" << std::endl;
+        
+        // Bloque _try interno
+        _try {
+            std::cout << "Bloque _try interno: Iniciando ejecución" << std::endl;
+            
+            // Generar una excepción en el bloque interno
+            int* ptr = nullptr;
+            *ptr = 10; // Esto generará SIGSEGV
+            
+            std::cout << "Bloque _try interno: Esta línea no debería ejecutarse" << std::endl;
+        }
+        _catch(MemoryGuard::InvalidMemoryAccessException, excepcionInterna) {
+            std::cerr << "Bloque _catch interno: Excepción capturada: " << excepcionInterna.what() << std::endl;
+        }
+        
+        std::cout << "Bloque _try externo: Después del bloque _try interno" << std::endl;
+        
+        // Ahora generar una excepción en el bloque externo
+        int* ptr = nullptr;
+        *ptr = 20; // Esto generará SIGSEGV
+        
+        std::cout << "Bloque _try externo: Esta línea no debería ejecutarse" << std::endl;
+    }
+    _catch(MemoryGuard::InvalidMemoryAccessException, excepcionExterna) {
+        std::cerr << "Bloque _catch externo: Excepción capturada: " << excepcionExterna.what() << std::endl;
+    }
+    
+    std::cout << "¡Ejemplo completado con éxito!" << std::endl;
+    
+    // Limpiar recursos
+    MemoryGuard::unregisterThreadHandler();
 }
 ```
 
@@ -221,6 +376,28 @@ int main() {
 }
 ```
 
+## Detalles de Implementación
+
+### Manejo de Señales
+
+MemoryGuard utiliza las facilidades estándar de manejo de señales de C++ para instalar un manejador de señales personalizado para señales SIGSEGV. El manejador de señales se instala una vez por proceso utilizando la función `installGlobalHandlerOnce()`, que configura una acción de señal utilizando `sigaction()`.
+
+### Contexto Específico de Hilo
+
+Cada hilo que utiliza MemoryGuard tiene su propio contexto, almacenado en una variable local de hilo (`currentThreadContext`). Este contexto incluye:
+
+- Una pila de buffers de salto para bloques try anidados
+- Una bandera que indica si el manejador está activo
+- Un puntero a función para el manejador de señales específico del hilo
+
+### Pila de Buffers de Salto
+
+Para soportar bloques try anidados, MemoryGuard mantiene una pila de buffers de salto. Cuando se ingresa a un bloque `_try`, se empuja un nuevo buffer de salto a la pila. Cuando ocurre un fallo de segmentación, el manejador de señales utiliza el buffer de salto superior para devolver el control al bloque `_try` más reciente.
+
+### Propagación de Excepciones
+
+Cuando se captura un fallo de segmentación, MemoryGuard lanza una excepción personalizada `InvalidMemoryAccessException` con un mensaje de error detallado. Esta excepción puede ser capturada utilizando la macro `_catch`, que funciona de manera similar a un bloque catch estándar de C++.
+
 ## Notas Importantes
 
 1. En aplicaciones multi-hilo, siempre libere el registro de los manejadores de hilo cuando finalice el uso de los hilos mediante `MemoryGuard::unregisterThreadHandler()`.
@@ -229,12 +406,74 @@ int main() {
 4. MemoryGuard está diseñado para propósitos de desarrollo y depuración. En entornos de producción, generalmente es mejor corregir los problemas subyacentes de acceso a memoria en lugar de depender de la captura de fallos de segmentación.
 5. La biblioteca tiene una pequeña sobrecarga de rendimiento debido al mecanismo de manejo de señales.
 
-## Dependencias
+## Pruebas y Sanitizadores
 
-- `libsigsegv`: Una biblioteca para manejar fallos de página en modo usuario
+Al ejecutar las pruebas, es posible que notes errores inusuales de acceso a memoria mostrados en la pantalla. Esto se debe a que el conjunto de pruebas está configurado con varios sanitizadores habilitados en el archivo `tests/CMakeLists.txt`:
+
+```cmake
+# Enable Address Sanitizer and Undefined Behavior Sanitizer
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+```
+
+Estos sanitizadores incluyen:
+- **AddressSanitizer (ASan)**: Detecta errores de memoria como desbordamientos de buffer, uso después de liberación y fugas de memoria
+- **UndefinedBehaviorSanitizer (UBSan)**: Detecta comportamiento indefinido como desbordamiento de enteros, desreferenciación de punteros nulos, etc.
+- **LeakSanitizer**: Detecta fugas de memoria
+
+El entorno de prueba también está configurado con variables de entorno especiales para permitir que MemoryGuard maneje fallos de segmentación mientras los sanitizadores están activos:
+
+```cmake
+set_tests_properties(memory_guard_tests PROPERTIES
+    ENVIRONMENT "ASAN_OPTIONS=handle_segv=0:allow_user_segv_handler=1:detect_leaks=0"
+)
+```
+
+### Ejemplo de Salida de Pruebas
+
+Al ejecutar las pruebas, verás numerosos mensajes de error de tiempo de ejecución como los siguientes:
+
+```
+Randomness seeded to: 4243962057
+.../tests/memory_guard_tests.cpp:17:14: runtime error: store to null pointer of type 'int'
+.../tests/memory_guard_tests.cpp:76:22: runtime error: store to null pointer of type 'int'
+.../tests/memory_guard_tests.cpp:115:34: runtime error: store to null pointer of type 'int'
+Outer try block stack size: 1
+Outer jmpbuf address: 0x514000000c40
+Inner try block stack size: 2
+Inner jmpbuf address: 0x514000000d08
+.../tests/memory_guard_tests.cpp:212:22: runtime error: store to null pointer of type 'int'
+Stack size after inner catch: 1
+Current jmpbuf address after inner catch: 0x514000000c40
+Stack size after inner block: 1
+Final jmpbuf address: 0x514000000c40
+...
+Throwing a standard C++ exception inside _try block...
+Caught standard exception: Standard C++ exception
+Throwing a custom exception inside _try block...
+Caught custom exception: Custom exception message
+Testing exception type 0...
+.../tests/memory_guard_tests.cpp:856:26: runtime error: store to null pointer of type 'int'
+Caught memory access exception: Invalid null pointer access exception
+Testing exception type 1...
+Caught standard exception: Standard C++ exception
+Testing exception type 2...
+Caught custom exception: Custom exception message
+...
+===============================================================================
+All tests passed (73 assertions in 18 test cases)
+```
+
+**Importante**: Estos mensajes de "runtime error" son esperados y no indican problemas reales con el código. Son generados por el UndefinedBehaviorSanitizer cuando detecta desreferenciaciones de punteros nulos, que es exactamente lo que muchas de nuestras pruebas están haciendo intencionalmente para verificar que MemoryGuard capture correctamente estos problemas.
+
+La línea final "All tests passed" confirma que MemoryGuard está funcionando correctamente, capturando y manejando con éxito todas las violaciones de acceso a memoria intencionales.
+
+Estos sanitizadores son herramientas de desarrollo valiosas que ayudan a identificar posibles problemas, pero pueden producir una salida detallada que podría parecer errores incluso cuando las pruebas están pasando con éxito. Los errores que ves a menudo son casos de prueba intencionales que verifican la capacidad de MemoryGuard para capturar y manejar violaciones de acceso a memoria.
 
 ## Limitaciones
 
-- MemoryGuard no puede recuperarse de todos los tipos de violaciones de acceso a memoria. Algunas corrupciones de memoria graves pueden seguir causando que el programa se bloquee.
-- La biblioteca está diseñada principalmente para sistemas Linux/Unix y puede no funcionar correctamente en todas las plataformas.
-- El uso de MemoryGuard no elimina la necesidad de prácticas adecuadas de gestión de memoria.
+- **Bloques Try Anidados**: Aunque la biblioteca soporta bloques try anidados, hay algunos casos extremos que pueden no funcionar correctamente, particularmente cuando ocurre una excepción en el bloque externo después de que el bloque interno ha completado. Esta es una limitación conocida de la implementación actual.
+- **Compatibilidad de Plataforma**: La biblioteca está diseñada principalmente para sistemas Linux/Unix y puede no funcionar correctamente en todas las plataformas.
+- **Limitaciones de Recuperación**: MemoryGuard no puede recuperarse de todos los tipos de violaciones de acceso a memoria. Algunas corrupciones de memoria graves pueden seguir causando que el programa se bloquee.
+- **Conflictos de Manejadores de Señales**: La biblioteca puede entrar en conflicto con otras bibliotecas que instalan sus propios manejadores de señales SIGSEGV. El script incluido `modify_catch2.sh` aborda esto para el framework de pruebas Catch2.
+- **Sobrecarga de Rendimiento**: Hay una pequeña sobrecarga de rendimiento debido al mecanismo de manejo de señales, especialmente en aplicaciones multi-hilo.

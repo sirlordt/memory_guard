@@ -53,32 +53,25 @@ if ! command_exists conan; then
     echo "Conan installed successfully."
 fi
 
-# Print commands before executing them
-set -x
-
 # Check if Conan profile exists and create one if it doesn't
 if ! conan profile list | grep -q default; then
     echo "No default Conan profile found. Creating one..."
     conan profile detect
 fi
 
-# Create build directory if it doesn't exist
-mkdir -p build
-cd build
+# Check if the main binary is built
+if [ ! -f "build/cpp_project" ]; then
+    echo "Binary not found. Building project first..."
+    ./build.sh
+    # Return to the project root directory after build.sh
+    cd "$(dirname "$0")"
+fi
 
-# Install dependencies with Conan and generate CMake files (Conan 2.x approach)
-conan install .. --output-folder=. --build=missing
-
-# Configure and build with CMake
-cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
-cmake --build .
-
-# Return to project root
-cd ..
-
-# Turn off command echoing before the final message (redirect to /dev/null to hide the command itself)
+# Turn off command echoing if it was enabled by build.sh (redirect to /dev/null to hide the command itself)
 { set +x; } 2>/dev/null
 
+echo -e "\nRunning the application..."
 # Run the application
-echo -e "\nRunning the application:"
 ./build/cpp_project
+
+echo -e "\nApplication completed!"

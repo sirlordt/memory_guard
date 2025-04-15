@@ -68,7 +68,59 @@ void thread_function(int id)
     MemoryGuard::unregisterThreadHandler();
 }
 
-int main()
+// Function to demonstrate nested try blocks with exception in outer block
+void nested_try_blocks_example()
+{
+    std::cout << "Starting nested _try blocks example..." << std::endl;
+    
+    try
+    {
+        _try
+        {
+            std::cout << "Outer _try block: Starting execution" << std::endl;
+            
+            // Inner _try block that doesn't generate exceptions
+            _try
+            {
+                std::cout << "Inner _try block: Starting execution" << std::endl;
+                
+               int* ptr = nullptr;
+               *ptr = 10; // This will generate SIGSEGV
+                
+            }
+            _catch(MemoryGuard::InvalidMemoryAccessException, innerException)
+            {
+                // This should not be executed
+                std::cerr << "Inner _catch block: Exception caught (unexpected): " << innerException.what() << std::endl;
+            }
+            
+            std::cout << "Outer _try block: After inner _try block" << std::endl;
+            
+            // Now generate an exception in the outer block
+            std::cout << "Outer _try block: Attempting to access null pointer" << std::endl;
+            int* ptr = nullptr;
+            *ptr = 10; // This will generate SIGSEGV
+            
+            std::cout << "Outer _try block: This line should not be executed" << std::endl;
+        }
+        _catch(MemoryGuard::InvalidMemoryAccessException, outerException)
+        {
+            std::cerr << "Outer _catch block: Exception caught: " << outerException.what() << std::endl;
+        }
+    }
+    catch (...)
+    {
+        std::cerr << "Standard catch block: Unexpected exception caught" << std::endl;
+    }
+    
+    std::cout << "Example completed successfully!" << std::endl;
+    
+    // Clean up resources
+    MemoryGuard::unregisterThreadHandler();
+}
+
+// Function to demonstrate multi-threaded usage
+void multi_threaded_example()
 {
     const int num_threads = 4;
     std::vector<std::thread> threads;
@@ -84,6 +136,15 @@ int main()
     }
 
     synchronized_print("Main: All threads have terminated successfully");
+}
 
+int main()
+{
+    // Run the nested try blocks example
+    nested_try_blocks_example();
+    
+    // Uncomment to run the multi-threaded example
+    // multi_threaded_example();
+    
     return 0;
 }
