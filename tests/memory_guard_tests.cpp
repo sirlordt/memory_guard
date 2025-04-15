@@ -978,3 +978,117 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in all bl
     REQUIRE(middle_caught == 1);
     REQUIRE(inner_caught == 1);
 }
+
+// Test case for nested try blocks with multithreading
+TEST_CASE("MemoryGuard handles nested try blocks with multithreading", "[memory_guard]") {
+    const int num_threads = 4;
+    std::atomic<int> outer_exceptions_caught(0);
+    std::atomic<int> inner_exceptions_caught(0);
+    std::atomic<int> threads_completed(0);
+    std::mutex cout_mutex;
+    
+    std::vector<std::thread> threads;
+    
+    // Create a new scope to ensure we have a fresh MemoryGuard context
+    {
+        for (int i = 0; i < num_threads; ++i) {
+            threads.emplace_back([&, i]() {
+                // Thread-specific counters
+                bool thread_outer_caught = false;
+                bool thread_inner_caught = false;
+                
+                // Create a new scope for each thread
+                {
+                    _try {
+                        // Outer try block
+                        {
+                            std::lock_guard<std::mutex> lock(cout_mutex);
+                            std::cout << "Thread " << i << ": Entered outer _try block" << std::endl;
+                        }
+                        
+                        _try {
+                            // Inner try block
+                            {
+                                std::lock_guard<std::mutex> lock(cout_mutex);
+                                std::cout << "Thread " << i << ": Entered inner _try block" << std::endl;
+                            }
+                            
+                            // Every thread will cause a segmentation fault in the inner block
+                            int* ptr = nullptr;
+                            *ptr = 10; // This should trigger an exception
+                            
+                            // If we get here, the test should fail
+                            FAIL("Expected exception was not thrown in inner try block");
+                        }
+                        _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+                            // This should be executed for all threads
+                            {
+                                std::lock_guard<std::mutex> lock(cout_mutex);
+                                std::cout << "Thread " << i << ": Caught inner exception: " << e.what() << std::endl;
+                            }
+                            thread_inner_caught = true;
+                            inner_exceptions_caught++;
+                        }
+                        
+                        // This code should be executed after the inner exception is caught
+                        REQUIRE(thread_inner_caught == true);
+                        
+                        // Even-numbered threads will also cause a segmentation fault in the outer block
+                        if (i % 2 == 0) {
+                            {
+                                std::lock_guard<std::mutex> lock(cout_mutex);
+                                std::cout << "Thread " << i << ": Generating exception in outer block" << std::endl;
+                            }
+                            
+                            int* ptr = nullptr;
+                            *ptr = 20; // This should trigger an exception
+                            
+                            // If we get here, the test should fail
+                            FAIL("Expected exception was not thrown in outer try block");
+                        }
+                    }
+                    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+                        // This should be executed only for even-numbered threads
+                        {
+                            std::lock_guard<std::mutex> lock(cout_mutex);
+                            std::cout << "Thread " << i << ": Caught outer exception: " << e.what() << std::endl;
+                        }
+                        thread_outer_caught = true;
+                        outer_exceptions_caught++;
+                    }
+                    
+                    // Verify thread-specific results
+                    REQUIRE(thread_inner_caught == true);
+                    if (i % 2 == 0) {
+                        REQUIRE(thread_outer_caught == true);
+                    }
+                    
+                    // Clean up resources for this thread
+                    MemoryGuard::unregisterThreadHandler();
+                    
+                    // Increment the completed threads counter
+                    threads_completed++;
+                    
+                    {
+                        std::lock_guard<std::mutex> lock(cout_mutex);
+                        std::cout << "Thread " << i << ": Completed" << std::endl;
+                    }
+                }
+            });
+        }
+        
+        // Wait for all threads to complete
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }
+    
+    // Verify that all threads completed
+    REQUIRE(threads_completed == num_threads);
+    
+    // Verify that all threads caught the inner exception
+    REQUIRE(inner_exceptions_caught == num_threads);
+    
+    // Verify that only even-numbered threads caught the outer exception
+    REQUIRE(outer_exceptions_caught == (num_threads + 1) / 2);
+}
