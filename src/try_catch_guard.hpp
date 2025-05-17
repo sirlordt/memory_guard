@@ -1,5 +1,5 @@
-#ifndef MEMORY_GUARD_HPP
-#define MEMORY_GUARD_HPP
+#ifndef TRY_CATCH_GUARD_HPP
+#define TRY_CATCH_GUARD_HPP
 
 // Removed sigsegv.h dependency
 #include <csetjmp>
@@ -18,7 +18,7 @@
 #include <memory>  // For std::shared_ptr and std::make_shared
 #include <stack>   // For std::stack
 
-namespace memory_guard {
+namespace try_catch_guard {
 
 // Custom exception for invalid memory accesses
 class InvalidMemoryAccessException : public std::exception {
@@ -239,16 +239,16 @@ inline void segvTryBlock(const std::function<void()> &block)
     currentThreadContext->active = false;
 }
 
-} // namespace memory_guard
+} // namespace try_catch_guard
 
 // _try and _catch macros
 #define _try \
     try      \
-    { memory_guard::segvTryBlock([&]()
+    { try_catch_guard::segvTryBlock([&]()
 
 #define _catch(type, var)                                                                                                                  \
                                                                                                                                         ); \
     }                                                                                                                                      \
     catch (const type &var)
 
-#endif // MEMORY_GUARD_HPP
+#endif // TRY_CATCH_GUARD_HPP

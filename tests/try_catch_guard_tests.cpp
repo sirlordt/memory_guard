@@ -5,10 +5,10 @@
 #include <atomic>
 #include <thread>
 #include <vector>
-#include "memory_guard.hpp"
+#include "try_catch_guard.hpp"
 
 // Test case for null pointer dereference
-TEST_CASE("MemoryGuard catches null pointer dereference", "[memory_guard]") {
+TEST_CASE("TryCatchGuard catches null pointer dereference", "[try_catch_guard]") {
     bool exception_caught = false;
     
     _try {
@@ -19,7 +19,7 @@ TEST_CASE("MemoryGuard catches null pointer dereference", "[memory_guard]") {
         // If we get here, the test should fail
         FAIL("Expected exception was not thrown");
     }
-    _catch(memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard::InvalidMemoryAccessException, e) {
         // Verify the exception message contains information about null pointer
         std::string error_message = e.what();
         bool has_null_info = error_message.find("null pointer") != std::string::npos;
@@ -33,11 +33,11 @@ TEST_CASE("MemoryGuard catches null pointer dereference", "[memory_guard]") {
     REQUIRE(exception_caught);
     
     // Clean up resources
-    memory_guard::unregisterThreadHandler();
+    try_catch_guard::unregisterThreadHandler();
 }
 
 // Test case for resource cleanup
-TEST_CASE("MemoryGuard properly cleans up resources", "[memory_guard]") {
+TEST_CASE("TryCatchGuard properly cleans up resources", "[try_catch_guard]") {
     // This test is more of a demonstration since we can't directly verify memory leaks in a unit test
     // In a real scenario, you would run this with a tool like Valgrind
     
@@ -48,12 +48,12 @@ TEST_CASE("MemoryGuard properly cleans up resources", "[memory_guard]") {
             *ptr = 10;
         }
     }
-    _catch(memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard::InvalidMemoryAccessException, e) {
         // Handle the exception
     }
     
     // Explicitly clean up resources
-    memory_guard::unregisterThreadHandler();
+    try_catch_guard::unregisterThreadHandler();
     
     // If we run this test with Valgrind and there are no memory leaks reported,
     // then we know that unregisterThreadHandler() is working correctly
@@ -78,7 +78,7 @@ TEST_CASE("MemoryGuard catches invalid memory address access", "[memory_guard]")
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // Verify the exception message contains information about the invalid address
             std::string error_message = e.what();
             bool has_null_info = error_message.find("null pointer") != std::string::npos;
@@ -89,7 +89,7 @@ TEST_CASE("MemoryGuard catches invalid memory address access", "[memory_guard]")
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that the exception was caught
@@ -115,12 +115,12 @@ TEST_CASE("MemoryGuard works correctly in multi-threaded environment", "[memory_
                             *ptr = 10; // This should trigger an exception
                         }
                     }
-                    _catch(memory_guard::InvalidMemoryAccessException, e) {
+                    _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                         exceptions_caught++;
                     }
                     
                     // Clean up resources for this thread
-                    memory_guard::unregisterThreadHandler();
+                    try_catch_guard::unregisterThreadHandler();
                 }
             });
         }
@@ -150,7 +150,7 @@ TEST_CASE("MemoryGuard handles nested try blocks with empty blocks", "[memory_gu
                 // Inner try block - just increment a counter, no exceptions
                 inner_executed++;
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should not be executed
                 FAIL("Unexpected exception caught in inner try block");
             }
@@ -158,13 +158,13 @@ TEST_CASE("MemoryGuard handles nested try blocks with empty blocks", "[memory_gu
             // This code should be executed
             REQUIRE(inner_executed == 1);
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected exception caught in outer try block");
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that both blocks were executed
@@ -184,24 +184,24 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in inner block",
             outer_executed++;
             
             // Check stack size after entering outer try block (should be 1)
-            size_t outer_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+            size_t outer_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
             std::cout << "Outer try block stack size: " << outer_stack_size << std::endl;
             REQUIRE(outer_stack_size == 1);
             
             // Store the address of the outer jmpbuf for later comparison
-            void* outer_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+            void* outer_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
             std::cout << "Outer jmpbuf address: " << outer_jmpbuf_addr << std::endl;
             
             _try {
                 // Inner try block
                 
                 // Check stack size after entering inner try block (should be 2)
-                size_t inner_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+                size_t inner_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
                 std::cout << "Inner try block stack size: " << inner_stack_size << std::endl;
                 REQUIRE(inner_stack_size == 2);
                 
                 // Store the address of the inner jmpbuf
-                void* inner_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+                void* inner_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
                 std::cout << "Inner jmpbuf address: " << inner_jmpbuf_addr << std::endl;
                 
                 // Verify that inner and outer jmpbuf addresses are different
@@ -214,17 +214,17 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in inner block",
                 // If we get here, the test should fail
                 FAIL("Expected exception was not thrown in inner try block");
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should be executed
                 inner_caught++;
                 
                 // Check stack size after catching exception in inner try block (should be 1)
-                size_t after_inner_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+                size_t after_inner_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
                 std::cout << "Stack size after inner catch: " << after_inner_stack_size << std::endl;
                 REQUIRE(after_inner_stack_size == 1);
                 
                 // Verify that the current jmpbuf is the same as the outer jmpbuf
-                void* current_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+                void* current_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
                 std::cout << "Current jmpbuf address after inner catch: " << current_jmpbuf_addr << std::endl;
                 REQUIRE(current_jmpbuf_addr == outer_jmpbuf_addr);
                 
@@ -236,23 +236,23 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in inner block",
             REQUIRE(inner_caught == 1);
             
             // Check stack size after inner try block (should still be 1)
-            size_t after_inner_block_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+            size_t after_inner_block_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
             std::cout << "Stack size after inner block: " << after_inner_block_stack_size << std::endl;
             REQUIRE(after_inner_block_stack_size == 1);
             
             // Verify that the current jmpbuf is still the same as the outer jmpbuf
-            void* final_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+            void* final_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
             std::cout << "Final jmpbuf address: " << final_jmpbuf_addr << std::endl;
             REQUIRE(final_jmpbuf_addr == outer_jmpbuf_addr);
 
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected exception caught in outer try block");
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that the outer block was executed and the inner exception was caught
@@ -279,12 +279,12 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in outer block",
             // Outer try block
             
             // Check stack size after entering outer try block (should be 1)
-            size_t outer_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+            size_t outer_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
             std::cout << "Outer try block stack size: " << outer_stack_size << std::endl;
             REQUIRE(outer_stack_size == 1);
             
             // Store the address of the outer jmpbuf for later comparison
-            void* outer_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+            void* outer_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
             std::cout << "Outer jmpbuf address: " << outer_jmpbuf_addr << std::endl;
             
             _try {
@@ -292,18 +292,18 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in outer block",
                 inner_executed++;
                 
                 // Check stack size after entering inner try block (should be 2)
-                size_t inner_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+                size_t inner_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
                 std::cout << "Inner try block stack size: " << inner_stack_size << std::endl;
                 REQUIRE(inner_stack_size == 2);
                 
                 // Store the address of the inner jmpbuf
-                void* inner_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+                void* inner_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
                 std::cout << "Inner jmpbuf address: " << inner_jmpbuf_addr << std::endl;
                 
                 // Verify that inner and outer jmpbuf addresses are different
                 REQUIRE(inner_jmpbuf_addr != outer_jmpbuf_addr);
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should not be executed
                 FAIL("Unexpected exception caught in inner try block");
             }
@@ -312,12 +312,12 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in outer block",
             REQUIRE(inner_executed == 1);
             
             // Check stack size after inner try block (should be 1)
-            size_t after_inner_block_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+            size_t after_inner_block_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
             std::cout << "Stack size after inner block: " << after_inner_block_stack_size << std::endl;
             REQUIRE(after_inner_block_stack_size == 1);
             
             // Verify that the current jmpbuf is the same as the outer jmpbuf
-            void* current_jmpbuf_addr = &(memory_guard::currentThreadContext->jmpbuf_stack.top());
+            void* current_jmpbuf_addr = &(try_catch_guard::currentThreadContext->jmpbuf_stack.top());
             std::cout << "Current jmpbuf address after inner block: " << current_jmpbuf_addr << std::endl;
             REQUIRE(current_jmpbuf_addr == outer_jmpbuf_addr);
             
@@ -329,18 +329,18 @@ TEST_CASE("MemoryGuard handles nested try blocks with exception in outer block",
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in outer try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             outer_caught++;
             std::cout << "Exception caught in outer try block" << std::endl;
             
             // Check stack size after catching exception in outer try block (should be 0)
-            size_t after_outer_catch_stack_size = memory_guard::currentThreadContext->jmpbuf_stack.size();
+            size_t after_outer_catch_stack_size = try_catch_guard::currentThreadContext->jmpbuf_stack.size();
             std::cout << "Stack size after outer catch: " << after_outer_catch_stack_size << std::endl;
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that the inner block was executed and the outer exception was caught
@@ -364,7 +364,7 @@ TEST_CASE("MemoryGuard handles sequential try blocks with exceptions", "[memory_
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in first try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             first_caught++;
         }
@@ -378,13 +378,13 @@ TEST_CASE("MemoryGuard handles sequential try blocks with exceptions", "[memory_
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in second try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             second_caught++;
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that both exceptions were caught
@@ -416,7 +416,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in innermo
                     // If we get here, the test should fail
                     FAIL("Expected exception was not thrown in inner try block");
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should be executed
                     inner_caught++;
                 }
@@ -424,7 +424,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in innermo
                 // This code should be executed after the inner exception is caught
                 REQUIRE(inner_caught == 1);
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should not be executed
                 FAIL("Unexpected exception caught in middle try block");
             }
@@ -432,13 +432,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in innermo
             // This code should be executed
             REQUIRE(middle_executed == 1);
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected exception caught in outer try block");
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -466,7 +466,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in middle 
                     // Inner try block - no exception
                     inner_executed++;
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should not be executed
                     FAIL("Unexpected exception caught in inner try block");
                 }
@@ -481,7 +481,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in middle 
                 // If we get here, the test should fail
                 FAIL("Expected exception was not thrown in middle try block");
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should be executed
                 middle_caught++;
             }
@@ -489,13 +489,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in middle 
             // This code should be executed after the middle exception is caught
             REQUIRE(middle_caught == 1);
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected exception caught in outer try block");
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -523,7 +523,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in outermo
                     // Inner try block - no exception
                     inner_executed++;
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should not be executed
                     FAIL("Unexpected exception caught in inner try block");
                 }
@@ -531,7 +531,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in outermo
                 // This code should be executed
                 REQUIRE(inner_executed == 1);
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should not be executed
                 FAIL("Unexpected exception caught in middle try block");
             }
@@ -546,13 +546,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exception in outermo
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in outer try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             outer_caught++;
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -584,7 +584,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in innerm
                     // If we get here, the test should fail
                     FAIL("Expected exception was not thrown in inner try block");
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should be executed
                     inner_caught++;
                 }
@@ -599,7 +599,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in innerm
                 // If we get here, the test should fail
                 FAIL("Expected exception was not thrown in middle try block");
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should be executed
                 middle_caught++;
             }
@@ -607,13 +607,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in innerm
             // This code should be executed after the middle exception is caught
             REQUIRE(middle_caught == 1);
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected exception caught in outer try block");
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -645,7 +645,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in innerm
                     // If we get here, the test should fail
                     FAIL("Expected exception was not thrown in inner try block");
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should be executed
                     inner_caught++;
                 }
@@ -653,7 +653,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in innerm
                 // This code should be executed after the inner exception is caught
                 REQUIRE(inner_caught == 1);
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should not be executed
                 FAIL("Unexpected exception caught in middle try block");
             }
@@ -668,13 +668,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in innerm
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in outer try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             outer_caught++;
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -701,7 +701,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in middle
                     // Inner try block - no exception
                     inner_executed++;
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should not be executed
                     FAIL("Unexpected exception caught in inner try block");
                 }
@@ -716,7 +716,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in middle
                 // If we get here, the test should fail
                 FAIL("Expected exception was not thrown in middle try block");
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should be executed
                 middle_caught++;
             }
@@ -731,13 +731,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in middle
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in outer try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             outer_caught++;
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -760,7 +760,7 @@ TEST_CASE("MemoryGuard handles standard C++ exceptions within _try blocks", "[me
             // If we get here, the test should fail
             FAIL("Expected standard exception was not thrown");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected memory access exception caught");
         }
@@ -777,7 +777,7 @@ TEST_CASE("MemoryGuard handles standard C++ exceptions within _try blocks", "[me
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that the standard exception was caught
@@ -805,7 +805,7 @@ TEST_CASE("MemoryGuard handles custom exceptions within _try blocks", "[memory_g
             // If we get here, the test should fail
             FAIL("Expected custom exception was not thrown");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should not be executed
             FAIL("Unexpected memory access exception caught");
         }
@@ -822,7 +822,7 @@ TEST_CASE("MemoryGuard handles custom exceptions within _try blocks", "[memory_g
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that the custom exception was caught
@@ -867,7 +867,7 @@ TEST_CASE("MemoryGuard handles mixed exceptions within _try blocks", "[memory_gu
                 // If we get here, the test should fail
                 FAIL("Expected exception was not thrown");
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should only be executed for memory access exceptions
                 if (exceptionType == ExceptionType::MEMORY_ACCESS) {
                     std::cout << "Caught memory access exception: " << e.what() << std::endl;
@@ -904,7 +904,7 @@ TEST_CASE("MemoryGuard handles mixed exceptions within _try blocks", "[memory_gu
             }
             
             // Clean up resources within this scope
-            memory_guard::unregisterThreadHandler();
+            try_catch_guard::unregisterThreadHandler();
         }
         
         // Verify that the appropriate exception was caught
@@ -934,7 +934,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in all bl
                     // If we get here, the test should fail
                     FAIL("Expected exception was not thrown in inner try block");
                 }
-                _catch(memory_guard::InvalidMemoryAccessException, e) {
+                _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                     // This should be executed
                     inner_caught++;
                 }
@@ -949,7 +949,7 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in all bl
                 // If we get here, the test should fail
                 FAIL("Expected exception was not thrown in middle try block");
             }
-            _catch(memory_guard::InvalidMemoryAccessException, e) {
+            _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                 // This should be executed
                 middle_caught++;
             }
@@ -964,13 +964,13 @@ TEST_CASE("MemoryGuard handles three nested try blocks with exceptions in all bl
             // If we get here, the test should fail
             FAIL("Expected exception was not thrown in outer try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e) {
+        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
             // This should be executed
             outer_caught++;
         }
         
         // Clean up resources within this scope
-        memory_guard::unregisterThreadHandler();
+        try_catch_guard::unregisterThreadHandler();
     }
     
     // Verify that all blocks were executed as expected
@@ -1020,7 +1020,7 @@ TEST_CASE("MemoryGuard handles nested try blocks with multithreading", "[memory_
                             // If we get here, the test should fail
                             FAIL("Expected exception was not thrown in inner try block");
                         }
-                        _catch(memory_guard::InvalidMemoryAccessException, e) {
+                        _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                             // This should be executed for all threads
                             {
                                 std::lock_guard<std::mutex> lock(cout_mutex);
@@ -1047,7 +1047,7 @@ TEST_CASE("MemoryGuard handles nested try blocks with multithreading", "[memory_
                             FAIL("Expected exception was not thrown in outer try block");
                         }
                     }
-                    _catch(memory_guard::InvalidMemoryAccessException, e) {
+                    _catch(try_catch_guard::InvalidMemoryAccessException, e) {
                         // This should be executed only for even-numbered threads
                         {
                             std::lock_guard<std::mutex> lock(cout_mutex);
@@ -1064,7 +1064,7 @@ TEST_CASE("MemoryGuard handles nested try blocks with multithreading", "[memory_
                     }
                     
                     // Clean up resources for this thread
-                    memory_guard::unregisterThreadHandler();
+                    try_catch_guard::unregisterThreadHandler();
                     
                     // Increment the completed threads counter
                     threads_completed++;

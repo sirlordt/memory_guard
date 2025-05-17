@@ -1,4 +1,4 @@
-# MemoryGuard Library
+# TryCatchGuard Library
 
 A C++ library for catching and handling segmentation faults (SIGSEGV) in a controlled manner, providing a try-catch-like mechanism for handling invalid memory accesses without crashing your application.
 
@@ -21,29 +21,29 @@ A C++ library for catching and handling segmentation faults (SIGSEGV) in a contr
 ## Project Structure
 
 ```
-memory_guard/
+try_catch_guard/
 ├── CMakeLists.txt          # Main CMake configuration
 ├── conanfile.txt           # Conan dependencies
 ├── build.sh                # Build script
 ├── modify_catch2.sh        # Script to modify Catch2's signal handling
 ├── src/
 │   ├── main.cpp            # Example usage
-│   └── memory_guard.hpp|memory_guard::     # Main library header
+│   └── try_catch_guard.hpp     # Main library header
 ├── tests/
 │   ├── CMakeLists.txt      # Test configuration
-│   └── memory_guard_tests.cpp  # Comprehensive tests
+│   └── try_catch_guard_tests.cpp  # Comprehensive tests
 └── DOC.en.md / DOC.es.md   # Documentation in English and Spanish
 ```
 
 ## How It Works
 
-MemoryGuard uses standard C++ signal handling to install a custom signal handler for SIGSEGV signals. When an invalid memory access occurs within a `_try` block, the signal handler captures the fault, records information about the fault address, and uses `longjmp` to return control to the `_try` block. The library then throws a custom `InvalidMemoryAccessException` that can be caught using the `_catch` macro.
+TryCatchGuard uses standard C++ signal handling to install a custom signal handler for SIGSEGV signals. When an invalid memory access occurs within a `_try` block, the signal handler captures the fault, records information about the fault address, and uses `longjmp` to return control to the `_try` block. The library then throws a custom `InvalidMemoryAccessException` that can be caught using the `_catch` macro.
 
 ## Basic Usage
 
 ```cpp
 #include <iostream>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp"
 
 int main() {
     _try {
@@ -51,13 +51,13 @@ int main() {
         int* ptr = nullptr;
         *ptr = 10; // This would normally crash the program
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard::InvalidMemoryAccessException, e) {
         // Handle the exception
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
     
     // Clean up resources
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -116,7 +116,7 @@ ctest -V
 MemoryGuard is designed to be thread-safe. Each thread registers its own handler, and the library maintains thread-specific contexts to ensure that segmentation faults are properly handled in multi-threaded applications.
 
 ```cpp
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp"
 #include <thread>
 
 void thread_function(int id) {
@@ -127,12 +127,12 @@ void thread_function(int id) {
             *ptr = 10;
         }
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Thread " << id << " caught exception: " << e.what() << std::endl;
     }
     
     // Important: Unregister the handler when the thread terminates
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard::unregisterThreadHandler();
 }
 ```
 
@@ -140,15 +140,15 @@ void thread_function(int id) {
 
 - **Nested Try Blocks**: The library fully supports nested try blocks up to 3 levels of nesting, which has been thoroughly tested. While deeper nesting levels have not been explicitly tested, the implementation is expected to work correctly with more levels of nesting (with approximately 70% confidence).
 - **Platform Compatibility**: The library is primarily designed for Linux/Unix systems and may not work correctly on all platforms.
-- **Recovery Limitations**: MemoryGuard cannot recover from all types of memory access violations. Some severe memory corruptions may still cause the program to crash.
+- **Recovery Limitations**: TryCatchGuard cannot recover from all types of memory access violations. Some severe memory corruptions may still cause the program to crash.
 - **Signal Handler Conflicts**: The library may conflict with other libraries that install their own SIGSEGV signal handlers. The included `modify_catch2.sh` script addresses this for Catch2 testing framework.
 - **Performance Overhead**: There is a small performance overhead due to the signal handling mechanism, especially in multi-threaded applications.
 
 ## Important Notes
 
-1. Always call `memory_guard.hpp|memory_guard::unregisterThreadHandler()` when a thread that uses MemoryGuard terminates to avoid memory leaks.
+1. Always call `try_catch_guard::unregisterThreadHandler()` when a thread that uses TryCatchGuard terminates to avoid memory leaks.
 2. The `_try` and `_catch` macros must be used together, similar to standard try-catch blocks.
-3. MemoryGuard is designed for development and debugging purposes. In production environments, it's generally better to fix the underlying memory access issues rather than relying on catching segmentation faults.
+3. TryCatchGuard is designed for development and debugging purposes. In production environments, it's generally better to fix the underlying memory access issues rather than relying on catching segmentation faults.
 
 ## License
 

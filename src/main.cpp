@@ -2,7 +2,7 @@
 #include <thread>
 #include <vector>
 #include <mutex>
-#include "memory_guard.hpp"
+#include "try_catch_guard.hpp"
 
 // Global mutex for console output synchronization
 std::mutex console_mutex;
@@ -52,7 +52,7 @@ void thread_function(int id)
             
             synchronized_print("Thread ", id, ": Successfully completed _try block");
         }
-        _catch(memory_guard::InvalidMemoryAccessException, e)
+        _catch(try_catch_guard::InvalidMemoryAccessException, e)
         {
             synchronized_error("Thread ", id, ": Exception caught: ", e.what());
         }
@@ -65,7 +65,7 @@ void thread_function(int id)
     synchronized_print("Thread ", id, ": Terminating");
     
     // Unregister the handler when the thread terminates
-    memory_guard::unregisterThreadHandler();
+    try_catch_guard::unregisterThreadHandler();
 }
 
 // Function to demonstrate nested try blocks with exception in outer block
@@ -88,7 +88,7 @@ void nested_try_blocks_example()
                *ptr = 10; // This will generate SIGSEGV
                 
             }
-            _catch(memory_guard::InvalidMemoryAccessException, innerException)
+            _catch(try_catch_guard::InvalidMemoryAccessException, innerException)
             {
                 // This should not be executed
                 std::cerr << "Inner _catch block: Exception caught (unexpected): " << innerException.what() << std::endl;
@@ -103,7 +103,7 @@ void nested_try_blocks_example()
             
             std::cout << "Outer _try block: This line should not be executed" << std::endl;
         }
-        _catch(memory_guard::InvalidMemoryAccessException, outerException)
+        _catch(try_catch_guard::InvalidMemoryAccessException, outerException)
         {
             std::cerr << "Outer _catch block: Exception caught: " << outerException.what() << std::endl;
         }
@@ -116,7 +116,7 @@ void nested_try_blocks_example()
     std::cout << "Example completed successfully!" << std::endl;
     
     // Clean up resources
-    memory_guard::unregisterThreadHandler();
+    try_catch_guard::unregisterThreadHandler();
 }
 
 // Function to demonstrate multi-threaded usage

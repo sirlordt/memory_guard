@@ -60,7 +60,7 @@ if ! conan profile list | grep -q default; then
 fi
 
 # Check if the tests are built
-if [ ! -f "build/tests/memory_guard_tests" ]; then
+if [ ! -f "build/tests/try_catch_guard_tests" ]; then
     echo "Tests not found. Building tests first..."
     ./build_test.sh
 fi
@@ -68,9 +68,9 @@ fi
 # Turn off command echoing if it was enabled by build_test.sh (redirect to /dev/null to hide the command itself)
 { set +x; } 2>/dev/null
 
-echo -e "\nRunning memory_guard tests..."
+echo -e "\nRunning try_catch_guard tests..."
 cd build/tests
 # Run the tests (removed the -v flag as it's causing issues)
-./memory_guard_tests
+./try_catch_guard_tests
 
 echo -e "\nTests completed!"

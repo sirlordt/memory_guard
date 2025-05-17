@@ -1,8 +1,8 @@
-# MemoryGuard Library
+# TryCatchGuard Library
 
 ## Overview
 
-MemoryGuard is a C++ library designed to catch and handle segmentation faults (SIGSEGV) in a controlled manner. It provides a try-catch-like mechanism for handling invalid memory accesses, such as null pointer dereferences or accessing invalid memory addresses, without crashing the application.
+TryCatchGuard is a C++ library designed to catch and handle segmentation faults (SIGSEGV) in a controlled manner. It provides a try-catch-like mechanism for handling invalid memory accesses, such as null pointer dereferences or accessing invalid memory addresses, without crashing the application.
 
 ## Features
 
@@ -15,7 +15,7 @@ MemoryGuard is a C++ library designed to catch and handle segmentation faults (S
 
 ## How It Works
 
-MemoryGuard uses standard C++ signal handling to install a custom signal handler for SIGSEGV signals. When an invalid memory access occurs within a `_try` block, the signal handler captures the fault, records information about the fault address, and uses `longjmp` to return control to the `_try` block. The library then throws a custom `InvalidMemoryAccessException` that can be caught using the `_catch` macro.
+TryCatchGuard uses standard C++ signal handling to install a custom signal handler for SIGSEGV signals. When an invalid memory access occurs within a `_try` block, the signal handler captures the fault, records information about the fault address, and uses `longjmp` to return control to the `_try` block. The library then throws a custom `InvalidMemoryAccessException` that can be caught using the `_catch` macro.
 
 The implementation uses a stack of jump buffers to support nested try blocks, allowing exceptions to be caught at the appropriate level. Thread-local storage ensures that each thread has its own context, making the library thread-safe.
 
@@ -25,7 +25,7 @@ The implementation uses a stack of jump buffers to support nested try blocks, al
 
 ```cpp
 #include <iostream>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 void example() {
     _try {
@@ -33,7 +33,7 @@ void example() {
         int* ptr = nullptr;
         *ptr = 10; // This would normally crash the program
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         // Handle the exception
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
@@ -48,7 +48,7 @@ int main() {
     
     // It's recommended to call unregisterThreadHandler() to avoid memory leaks
     // that would be detected by tools like Valgrind
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -56,12 +56,12 @@ int main() {
 
 ### Using with Standard C++ Exceptions
 
-MemoryGuard is compatible with the standard C++ exception mechanism. You can throw and catch standard or custom exceptions within `_try`/`_catch` blocks. This allows you to combine protection against segmentation faults with normal C++ exception handling.
+TryCatchGuard is compatible with the standard C++ exception mechanism. You can throw and catch standard or custom exceptions within `_try`/`_catch` blocks. This allows you to combine protection against segmentation faults with normal C++ exception handling.
 
 ```cpp
 #include <iostream>
 #include <stdexcept>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 class MyCustomException : public std::exception {
 public:
@@ -87,9 +87,9 @@ void mixed_exceptions_example() {
             *ptr = 10; // This will generate SIGSEGV
         }
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         // This catches only memory access exceptions
-        std::cerr << "MemoryGuard exception caught: " << e.what() << std::endl;
+        std::cerr << "TryCatchGuard exception caught: " << e.what() << std::endl;
     }
     
     // You can use standard catch blocks to catch other exceptions
@@ -104,7 +104,7 @@ void mixed_exceptions_example() {
     }
     
     // Clean up resources
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -119,7 +119,7 @@ You can also nest standard try-catch blocks inside `_try`/`_catch` blocks:
 ```cpp
 #include <iostream>
 #include <stdexcept>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 void nested_example() {
     _try {
@@ -138,20 +138,20 @@ void nested_example() {
             *ptr = 10;
         }
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught in _catch: " << e.what() << std::endl;
     }
     
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
 }
 ```
 
 ### Thread Safety
 
-MemoryGuard is designed to be thread-safe. Each thread registers its own handler, and the library maintains thread-specific contexts to ensure that segmentation faults are properly handled in multi-threaded applications.
+TryCatchGuard is designed to be thread-safe. Each thread registers its own handler, and the library maintains thread-specific contexts to ensure that segmentation faults are properly handled in multi-threaded applications.
 
 ```cpp
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 #include <thread>
 #include <mutex>
 
@@ -174,12 +174,12 @@ void thread_function(int id) {
             *ptr = 10; // This would normally crash the program
         }
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         synchronized_print("Thread ", id, " caught exception: ", e.what());
     }
     
     // Important: Unregister the handler when the thread terminates
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -201,11 +201,11 @@ int main() {
 
 ### Nested Try Blocks
 
-MemoryGuard supports nested try blocks, allowing for more complex error handling scenarios:
+TryCatchGuard supports nested try blocks, allowing for more complex error handling scenarios:
 
 ```cpp
 #include <iostream>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 void nested_try_blocks_example() {
     _try {
@@ -221,7 +221,7 @@ void nested_try_blocks_example() {
             
             std::cout << "Inner _try block: This line should not be executed" << std::endl;
         }
-        _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, innerException) {
+        _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, innerException) {
             std::cerr << "Inner _catch block: Exception caught: " << innerException.what() << std::endl;
         }
         
@@ -233,24 +233,24 @@ void nested_try_blocks_example() {
         
         std::cout << "Outer _try block: This line should not be executed" << std::endl;
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, outerException) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, outerException) {
         std::cerr << "Outer _catch block: Exception caught: " << outerException.what() << std::endl;
     }
     
     std::cout << "Example completed successfully!" << std::endl;
     
     // Clean up resources
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
 }
 ```
 
 ### Different Types of Memory Access Violations
 
-MemoryGuard can handle different types of invalid memory accesses:
+TryCatchGuard can handle different types of invalid memory accesses:
 
 ```cpp
 #include <iostream>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 void test_null_pointer() {
     _try {
@@ -260,7 +260,7 @@ void test_null_pointer() {
         *null_ptr = 10; // This will throw an InvalidMemoryAccessException
         std::cout << "This line will not be executed" << std::endl;
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught null pointer exception: " << e.what() << std::endl;
     }
 }
@@ -273,7 +273,7 @@ void test_invalid_address() {
         *bad_ptr = 20; // This will also throw an InvalidMemoryAccessException
         std::cout << "This line will not be executed" << std::endl;
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught invalid address exception: " << e.what() << std::endl;
     }
 }
@@ -288,7 +288,7 @@ int main() {
     
     // It's recommended to call unregisterThreadHandler() to avoid memory leaks
     // that would be detected by tools like Valgrind
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -298,33 +298,33 @@ int main() {
 
 ### Single-Threaded Applications
 
-In single-threaded applications, calling `memory_guard.hpp|memory_guard::unregisterThreadHandler()` at the end of the program is technically optional since the operating system will reclaim all memory when the process terminates. However, it is strongly recommended to call it for the following reasons:
+In single-threaded applications, calling `try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler()` at the end of the program is technically optional since the operating system will reclaim all memory when the process terminates. However, it is strongly recommended to call it for the following reasons:
 
-1. **Memory Leak Detection Tools**: Tools like Valgrind will report memory leaks if you don't explicitly free the memory allocated by MemoryGuard before program termination.
+1. **Memory Leak Detection Tools**: Tools like Valgrind will report memory leaks if you don't explicitly free the memory allocated by TryCatchGuard before program termination.
 2. **Resource Management**: It's good practice to clean up all resources your program uses, even if the OS would reclaim them anyway.
-3. **Long-Running Applications**: If you're using MemoryGuard in a long-running application where you only need it for specific sections, you should call `unregisterThreadHandler()` after those sections to free up resources immediately.
+3. **Long-Running Applications**: If you're using TryCatchGuard in a long-running application where you only need it for specific sections, you should call `unregisterThreadHandler()` after those sections to free up resources immediately.
 
 ```cpp
 #include <iostream>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 int main() {
     std::cout << "Starting single-threaded example..." << std::endl;
     
-    // Section where we need MemoryGuard
+    // Section where we need TryCatchGuard
     _try {
         std::cout << "Protected section..." << std::endl;
         // Some code that might cause segmentation faults
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
     
-    // If we don't need MemoryGuard anymore, we can unregister the handler
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    // If we don't need TryCatchGuard anymore, we can unregister the handler
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
     
     std::cout << "Continuing with the rest of the program..." << std::endl;
-    // Rest of the program where we don't need MemoryGuard
+    // Rest of the program where we don't need TryCatchGuard
     
     return 0;
 }
@@ -332,37 +332,37 @@ int main() {
 
 ### Multi-Threaded Applications
 
-In multi-threaded applications, it's important to call `memory_guard.hpp|memory_guard::unregisterThreadHandler()` at the end of each thread function to prevent resource leaks. This is especially important for worker threads that may be created and destroyed frequently.
+In multi-threaded applications, it's important to call `try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler()` at the end of each thread function to prevent resource leaks. This is especially important for worker threads that may be created and destroyed frequently.
 
-It's crucial to understand that the main function also runs in a thread (the "main thread"). If the main thread uses MemoryGuard directly, it must also call `unregisterThreadHandler()` before terminating to avoid memory leaks that would be detected by tools like Valgrind.
+It's crucial to understand that the main function also runs in a thread (the "main thread"). If the main thread uses TryCatchGuard directly, it must also call `unregisterThreadHandler()` before terminating to avoid memory leaks that would be detected by tools like Valgrind.
 
 ```cpp
 #include <iostream>
 #include <thread>
-#include "memory_guard.hpp|memory_guard::"
+#include "try_catch_guard.hpp|try_catch_guard::"
 
 void worker_thread() {
-    // Thread code using MemoryGuard
+    // Thread code using TryCatchGuard
     _try {
         // Some code that might cause segmentation faults
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Worker thread caught exception: " << e.what() << std::endl;
     }
     
     // Clean up thread resources
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
 }
 
 int main() {
     // Create and run worker threads
     std::thread t(worker_thread);
     
-    // Main thread also uses MemoryGuard
+    // Main thread also uses TryCatchGuard
     _try {
         // Some code in the main thread that might cause segmentation faults
     }
-    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
+    _catch(try_catch_guard.hpp|try_catch_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Main thread caught exception: " << e.what() << std::endl;
     }
     
@@ -370,7 +370,7 @@ int main() {
     t.join();
     
     // Clean up main thread resources
-    memory_guard.hpp|memory_guard::unregisterThreadHandler();
+    try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -380,11 +380,11 @@ int main() {
 
 ### Signal Handling
 
-MemoryGuard uses the standard C++ signal handling facilities to install a custom signal handler for SIGSEGV signals. The signal handler is installed once per process using the `installGlobalHandlerOnce()` function, which sets up a signal action using `sigaction()`.
+TryCatchGuard uses the standard C++ signal handling facilities to install a custom signal handler for SIGSEGV signals. The signal handler is installed once per process using the `installGlobalHandlerOnce()` function, which sets up a signal action using `sigaction()`.
 
 ### Thread-Specific Context
 
-Each thread that uses MemoryGuard has its own context, stored in a thread-local variable (`currentThreadContext`). This context includes:
+Each thread that uses TryCatchGuard has its own context, stored in a thread-local variable (`currentThreadContext`). This context includes:
 
 - A stack of jump buffers for nested try blocks
 - A flag indicating whether the handler is active
@@ -392,18 +392,18 @@ Each thread that uses MemoryGuard has its own context, stored in a thread-local 
 
 ### Jump Buffer Stack
 
-To support nested try blocks, MemoryGuard maintains a stack of jump buffers. When a `_try` block is entered, a new jump buffer is pushed onto the stack. When a segmentation fault occurs, the signal handler uses the top jump buffer to return control to the most recent `_try` block.
+To support nested try blocks, TryCatchGuard maintains a stack of jump buffers. When a `_try` block is entered, a new jump buffer is pushed onto the stack. When a segmentation fault occurs, the signal handler uses the top jump buffer to return control to the most recent `_try` block.
 
 ### Exception Propagation
 
-When a segmentation fault is caught, MemoryGuard throws a custom `InvalidMemoryAccessException` with a detailed error message. This exception can be caught using the `_catch` macro, which works similarly to a standard C++ catch block.
+When a segmentation fault is caught, TryCatchGuard throws a custom `InvalidMemoryAccessException` with a detailed error message. This exception can be caught using the `_catch` macro, which works similarly to a standard C++ catch block.
 
 ## Important Notes
 
-1. In multi-threaded applications, always unregister thread handlers when threads terminate using `memory_guard.hpp|memory_guard::unregisterThreadHandler()`.
-2. In single-threaded applications, unregistering is optional but recommended if MemoryGuard is only used in specific sections.
+1. In multi-threaded applications, always unregister thread handlers when threads terminate using `try_catch_guard.hpp|try_catch_guard::unregisterThreadHandler()`.
+2. In single-threaded applications, unregistering is optional but recommended if TryCatchGuard is only used in specific sections.
 3. The `_try` and `_catch` macros must be used together, similar to standard try-catch blocks.
-4. MemoryGuard is designed for development and debugging purposes. In production environments, it's generally better to fix the underlying memory access issues rather than relying on catching segmentation faults.
+4. TryCatchGuard is designed for development and debugging purposes. In production environments, it's generally better to fix the underlying memory access issues rather than relying on catching segmentation faults.
 5. The library has a small performance overhead due to the signal handling mechanism.
 
 ## Testing and Sanitizers
@@ -421,7 +421,7 @@ These sanitizers include:
 - **UndefinedBehaviorSanitizer (UBSan)**: Detects undefined behavior like integer overflow, null pointer dereference, etc.
 - **LeakSanitizer**: Detects memory leaks
 
-The test environment is also configured with special environment variables to allow MemoryGuard to handle segmentation faults while the sanitizers are active:
+The test environment is also configured with special environment variables to allow TryCatchGuard to handle segmentation faults while the sanitizers are active:
 
 ```cmake
 set_tests_properties(memory_guard_tests PROPERTIES
@@ -464,16 +464,16 @@ Caught custom exception: Custom exception message
 All tests passed (73 assertions in 18 test cases)
 ```
 
-**Important**: These "runtime error" messages are expected and do not indicate actual problems with the code. They are generated by the UndefinedBehaviorSanitizer when it detects null pointer dereferences, which is exactly what many of our tests are intentionally doing to verify that MemoryGuard correctly catches these issues.
+**Important**: These "runtime error" messages are expected and do not indicate actual problems with the code. They are generated by the UndefinedBehaviorSanitizer when it detects null pointer dereferences, which is exactly what many of our tests are intentionally doing to verify that TryCatchGuard correctly catches these issues.
 
-The final line "All tests passed" confirms that MemoryGuard is working correctly, successfully catching and handling all the intentional memory access violations.
+The final line "All tests passed" confirms that TryCatchGuard is working correctly, successfully catching and handling all the intentional memory access violations.
 
-These sanitizers are valuable development tools that help identify potential issues, but they can produce verbose output that might look like errors even when the tests are passing successfully. The errors you see are often intentional test cases that verify MemoryGuard's ability to catch and handle memory access violations.
+These sanitizers are valuable development tools that help identify potential issues, but they can produce verbose output that might look like errors even when the tests are passing successfully. The errors you see are often intentional test cases that verify TryCatchGuard's ability to catch and handle memory access violations.
 
 ## Limitations
 
 - **Nested Try Blocks**: The library fully supports nested try blocks up to 3 levels of nesting, which has been thoroughly tested. While deeper nesting levels have not been explicitly tested, the implementation is expected to work correctly with more levels of nesting (with approximately 70% confidence). The jump buffer stack mechanism should theoretically handle any number of nesting levels.
 - **Platform Compatibility**: The library is primarily designed for Linux/Unix systems and may not work correctly on all platforms.
-- **Recovery Limitations**: MemoryGuard cannot recover from all types of memory access violations. Some severe memory corruptions may still cause the program to crash.
+- **Recovery Limitations**: TryCatchGuard cannot recover from all types of memory access violations. Some severe memory corruptions may still cause the program to crash.
 - **Signal Handler Conflicts**: The library may conflict with other libraries that install their own SIGSEGV signal handlers. The included `modify_catch2.sh` script addresses this for the Catch2 testing framework.
 - **Performance Overhead**: There is a small performance overhead due to the signal handling mechanism, especially in multi-threaded applications.

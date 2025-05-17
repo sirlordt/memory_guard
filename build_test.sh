@@ -77,7 +77,7 @@ conan install .. --output-folder=. --build=missing
 cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
 
 # Build only the tests
-cmake --build . --target memory_guard_tests
+cmake --build . --target try_catch_guard_tests
 
 # Turn off command echoing before the final message (redirect to /dev/null to hide the command itself)
 { set +x; } 2>/dev/null
