@@ -25,7 +25,7 @@ The implementation uses a stack of jump buffers to support nested try blocks, al
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void example() {
     _try {
@@ -33,7 +33,7 @@ void example() {
         int* ptr = nullptr;
         *ptr = 10; // This would normally crash the program
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         // Handle the exception
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
@@ -48,7 +48,7 @@ int main() {
     
     // It's recommended to call unregisterThreadHandler() to avoid memory leaks
     // that would be detected by tools like Valgrind
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -61,7 +61,7 @@ MemoryGuard is compatible with the standard C++ exception mechanism. You can thr
 ```cpp
 #include <iostream>
 #include <stdexcept>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 class MyCustomException : public std::exception {
 public:
@@ -87,7 +87,7 @@ void mixed_exceptions_example() {
             *ptr = 10; // This will generate SIGSEGV
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         // This catches only memory access exceptions
         std::cerr << "MemoryGuard exception caught: " << e.what() << std::endl;
     }
@@ -104,7 +104,7 @@ void mixed_exceptions_example() {
     }
     
     // Clean up resources
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -119,7 +119,7 @@ You can also nest standard try-catch blocks inside `_try`/`_catch` blocks:
 ```cpp
 #include <iostream>
 #include <stdexcept>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void nested_example() {
     _try {
@@ -138,11 +138,11 @@ void nested_example() {
             *ptr = 10;
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught in _catch: " << e.what() << std::endl;
     }
     
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 ```
 
@@ -151,7 +151,7 @@ void nested_example() {
 MemoryGuard is designed to be thread-safe. Each thread registers its own handler, and the library maintains thread-specific contexts to ensure that segmentation faults are properly handled in multi-threaded applications.
 
 ```cpp
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 #include <thread>
 #include <mutex>
 
@@ -174,12 +174,12 @@ void thread_function(int id) {
             *ptr = 10; // This would normally crash the program
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         synchronized_print("Thread ", id, " caught exception: ", e.what());
     }
     
     // Important: Unregister the handler when the thread terminates
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -205,7 +205,7 @@ MemoryGuard supports nested try blocks, allowing for more complex error handling
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void nested_try_blocks_example() {
     _try {
@@ -221,7 +221,7 @@ void nested_try_blocks_example() {
             
             std::cout << "Inner _try block: This line should not be executed" << std::endl;
         }
-        _catch(MemoryGuard::InvalidMemoryAccessException, innerException) {
+        _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, innerException) {
             std::cerr << "Inner _catch block: Exception caught: " << innerException.what() << std::endl;
         }
         
@@ -233,14 +233,14 @@ void nested_try_blocks_example() {
         
         std::cout << "Outer _try block: This line should not be executed" << std::endl;
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, outerException) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, outerException) {
         std::cerr << "Outer _catch block: Exception caught: " << outerException.what() << std::endl;
     }
     
     std::cout << "Example completed successfully!" << std::endl;
     
     // Clean up resources
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 ```
 
@@ -250,7 +250,7 @@ MemoryGuard can handle different types of invalid memory accesses:
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void test_null_pointer() {
     _try {
@@ -260,7 +260,7 @@ void test_null_pointer() {
         *null_ptr = 10; // This will throw an InvalidMemoryAccessException
         std::cout << "This line will not be executed" << std::endl;
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught null pointer exception: " << e.what() << std::endl;
     }
 }
@@ -273,7 +273,7 @@ void test_invalid_address() {
         *bad_ptr = 20; // This will also throw an InvalidMemoryAccessException
         std::cout << "This line will not be executed" << std::endl;
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught invalid address exception: " << e.what() << std::endl;
     }
 }
@@ -288,7 +288,7 @@ int main() {
     
     // It's recommended to call unregisterThreadHandler() to avoid memory leaks
     // that would be detected by tools like Valgrind
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -298,7 +298,7 @@ int main() {
 
 ### Single-Threaded Applications
 
-In single-threaded applications, calling `MemoryGuard::unregisterThreadHandler()` at the end of the program is technically optional since the operating system will reclaim all memory when the process terminates. However, it is strongly recommended to call it for the following reasons:
+In single-threaded applications, calling `memory_guard.hpp|memory_guard::unregisterThreadHandler()` at the end of the program is technically optional since the operating system will reclaim all memory when the process terminates. However, it is strongly recommended to call it for the following reasons:
 
 1. **Memory Leak Detection Tools**: Tools like Valgrind will report memory leaks if you don't explicitly free the memory allocated by MemoryGuard before program termination.
 2. **Resource Management**: It's good practice to clean up all resources your program uses, even if the OS would reclaim them anyway.
@@ -306,7 +306,7 @@ In single-threaded applications, calling `MemoryGuard::unregisterThreadHandler()
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 int main() {
     std::cout << "Starting single-threaded example..." << std::endl;
@@ -316,12 +316,12 @@ int main() {
         std::cout << "Protected section..." << std::endl;
         // Some code that might cause segmentation faults
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
     
     // If we don't need MemoryGuard anymore, we can unregister the handler
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     std::cout << "Continuing with the rest of the program..." << std::endl;
     // Rest of the program where we don't need MemoryGuard
@@ -332,26 +332,26 @@ int main() {
 
 ### Multi-Threaded Applications
 
-In multi-threaded applications, it's important to call `MemoryGuard::unregisterThreadHandler()` at the end of each thread function to prevent resource leaks. This is especially important for worker threads that may be created and destroyed frequently.
+In multi-threaded applications, it's important to call `memory_guard.hpp|memory_guard::unregisterThreadHandler()` at the end of each thread function to prevent resource leaks. This is especially important for worker threads that may be created and destroyed frequently.
 
 It's crucial to understand that the main function also runs in a thread (the "main thread"). If the main thread uses MemoryGuard directly, it must also call `unregisterThreadHandler()` before terminating to avoid memory leaks that would be detected by tools like Valgrind.
 
 ```cpp
 #include <iostream>
 #include <thread>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void worker_thread() {
     // Thread code using MemoryGuard
     _try {
         // Some code that might cause segmentation faults
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Worker thread caught exception: " << e.what() << std::endl;
     }
     
     // Clean up thread resources
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -362,7 +362,7 @@ int main() {
     _try {
         // Some code in the main thread that might cause segmentation faults
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Main thread caught exception: " << e.what() << std::endl;
     }
     
@@ -370,7 +370,7 @@ int main() {
     t.join();
     
     // Clean up main thread resources
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -400,7 +400,7 @@ When a segmentation fault is caught, MemoryGuard throws a custom `InvalidMemoryA
 
 ## Important Notes
 
-1. In multi-threaded applications, always unregister thread handlers when threads terminate using `MemoryGuard::unregisterThreadHandler()`.
+1. In multi-threaded applications, always unregister thread handlers when threads terminate using `memory_guard.hpp|memory_guard::unregisterThreadHandler()`.
 2. In single-threaded applications, unregistering is optional but recommended if MemoryGuard is only used in specific sections.
 3. The `_try` and `_catch` macros must be used together, similar to standard try-catch blocks.
 4. MemoryGuard is designed for development and debugging purposes. In production environments, it's generally better to fix the underlying memory access issues rather than relying on catching segmentation faults.

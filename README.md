@@ -28,7 +28,7 @@ memory_guard/
 ├── modify_catch2.sh        # Script to modify Catch2's signal handling
 ├── src/
 │   ├── main.cpp            # Example usage
-│   └── MemoryGuard.hpp     # Main library header
+│   └── memory_guard.hpp|memory_guard::     # Main library header
 ├── tests/
 │   ├── CMakeLists.txt      # Test configuration
 │   └── memory_guard_tests.cpp  # Comprehensive tests
@@ -43,7 +43,7 @@ MemoryGuard uses standard C++ signal handling to install a custom signal handler
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 int main() {
     _try {
@@ -51,13 +51,13 @@ int main() {
         int* ptr = nullptr;
         *ptr = 10; // This would normally crash the program
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         // Handle the exception
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
     
     // Clean up resources
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -116,7 +116,7 @@ ctest -V
 MemoryGuard is designed to be thread-safe. Each thread registers its own handler, and the library maintains thread-specific contexts to ensure that segmentation faults are properly handled in multi-threaded applications.
 
 ```cpp
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 #include <thread>
 
 void thread_function(int id) {
@@ -127,12 +127,12 @@ void thread_function(int id) {
             *ptr = 10;
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Thread " << id << " caught exception: " << e.what() << std::endl;
     }
     
     // Important: Unregister the handler when the thread terminates
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 ```
 
@@ -146,7 +146,7 @@ void thread_function(int id) {
 
 ## Important Notes
 
-1. Always call `MemoryGuard::unregisterThreadHandler()` when a thread that uses MemoryGuard terminates to avoid memory leaks.
+1. Always call `memory_guard.hpp|memory_guard::unregisterThreadHandler()` when a thread that uses MemoryGuard terminates to avoid memory leaks.
 2. The `_try` and `_catch` macros must be used together, similar to standard try-catch blocks.
 3. MemoryGuard is designed for development and debugging purposes. In production environments, it's generally better to fix the underlying memory access issues rather than relying on catching segmentation faults.
 

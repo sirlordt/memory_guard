@@ -25,7 +25,7 @@ La implementación utiliza una pila de buffers de salto para soportar bloques tr
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void ejemplo() {
     _try {
@@ -33,7 +33,7 @@ void ejemplo() {
         int* ptr = nullptr;
         *ptr = 10; // Esto normalmente bloquearía el programa
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         // Manejar la excepción
         std::cerr << "Excepción capturada: " << e.what() << std::endl;
     }
@@ -48,7 +48,7 @@ int main() {
     
     // Se recomienda llamar a unregisterThreadHandler() para evitar fugas de memoria
     // que serían detectadas por herramientas como Valgrind
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -61,7 +61,7 @@ MemoryGuard es compatible con el mecanismo de excepciones estándar de C++. Pued
 ```cpp
 #include <iostream>
 #include <stdexcept>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 class MiExcepcionPersonalizada : public std::exception {
 public:
@@ -87,7 +87,7 @@ void ejemplo_excepciones_mixtas() {
             *ptr = 10; // Esto generará SIGSEGV
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         // Esta captura solo las excepciones de acceso inválido a memoria
         std::cerr << "Excepción de MemoryGuard capturada: " << e.what() << std::endl;
     }
@@ -104,7 +104,7 @@ void ejemplo_excepciones_mixtas() {
     }
     
     // Limpiar recursos
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -119,7 +119,7 @@ También puedes anidar bloques try-catch estándar dentro de bloques `_try`/`_ca
 ```cpp
 #include <iostream>
 #include <stdexcept>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void ejemplo_anidado() {
     _try {
@@ -138,11 +138,11 @@ void ejemplo_anidado() {
             *ptr = 10;
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Capturado en _catch: " << e.what() << std::endl;
     }
     
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 ```
 
@@ -151,7 +151,7 @@ void ejemplo_anidado() {
 MemoryGuard está diseñado para ser seguro en entornos multi-hilo. Cada hilo registra su propio manejador, y la biblioteca mantiene contextos específicos para cada hilo para asegurar que los fallos de segmentación se manejen correctamente en aplicaciones multi-hilo.
 
 ```cpp
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 #include <thread>
 #include <mutex>
 
@@ -174,12 +174,12 @@ void funcion_hilo(int id) {
             *ptr = 10; // Esto normalmente bloquearía el programa
         }
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         synchronized_print("Hilo ", id, " capturó excepción: ", e.what());
     }
     
     // Importante: Liberar el registro del manejador cuando el hilo termina
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -205,7 +205,7 @@ MemoryGuard soporta bloques try anidados, permitiendo escenarios de manejo de er
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void ejemplo_bloques_try_anidados() {
     _try {
@@ -221,7 +221,7 @@ void ejemplo_bloques_try_anidados() {
             
             std::cout << "Bloque _try interno: Esta línea no debería ejecutarse" << std::endl;
         }
-        _catch(MemoryGuard::InvalidMemoryAccessException, excepcionInterna) {
+        _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, excepcionInterna) {
             std::cerr << "Bloque _catch interno: Excepción capturada: " << excepcionInterna.what() << std::endl;
         }
         
@@ -233,14 +233,14 @@ void ejemplo_bloques_try_anidados() {
         
         std::cout << "Bloque _try externo: Esta línea no debería ejecutarse" << std::endl;
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, excepcionExterna) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, excepcionExterna) {
         std::cerr << "Bloque _catch externo: Excepción capturada: " << excepcionExterna.what() << std::endl;
     }
     
     std::cout << "¡Ejemplo completado con éxito!" << std::endl;
     
     // Limpiar recursos
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 ```
 
@@ -250,7 +250,7 @@ MemoryGuard puede manejar diferentes tipos de accesos inválidos a memoria:
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void probar_puntero_nulo() {
     _try {
@@ -260,7 +260,7 @@ void probar_puntero_nulo() {
         *ptr_nulo = 10; // Esto lanzará una InvalidMemoryAccessException
         std::cout << "Esta línea no se ejecutará" << std::endl;
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Excepción de puntero nulo capturada: " << e.what() << std::endl;
     }
 }
@@ -273,7 +273,7 @@ void probar_direccion_invalida() {
         *ptr_malo = 20; // Esto también lanzará una InvalidMemoryAccessException
         std::cout << "Esta línea no se ejecutará" << std::endl;
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Excepción de dirección inválida capturada: " << e.what() << std::endl;
     }
 }
@@ -288,7 +288,7 @@ int main() {
     
     // Se recomienda llamar a unregisterThreadHandler() para evitar fugas de memoria
     // que serían detectadas por herramientas como Valgrind
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -298,7 +298,7 @@ int main() {
 
 ### Aplicaciones de Un Solo Hilo
 
-En aplicaciones de un solo hilo, llamar a `MemoryGuard::unregisterThreadHandler()` al final del programa es técnicamente opcional ya que el sistema operativo recuperará toda la memoria cuando el proceso termine. Sin embargo, se recomienda encarecidamente hacerlo por las siguientes razones:
+En aplicaciones de un solo hilo, llamar a `memory_guard.hpp|memory_guard::unregisterThreadHandler()` al final del programa es técnicamente opcional ya que el sistema operativo recuperará toda la memoria cuando el proceso termine. Sin embargo, se recomienda encarecidamente hacerlo por las siguientes razones:
 
 1. **Herramientas de Detección de Fugas de Memoria**: Herramientas como Valgrind reportarán fugas de memoria si no liberas explícitamente la memoria asignada por MemoryGuard antes de la terminación del programa.
 2. **Gestión de Recursos**: Es una buena práctica limpiar todos los recursos que utiliza tu programa, incluso si el sistema operativo los recuperaría de todos modos.
@@ -306,7 +306,7 @@ En aplicaciones de un solo hilo, llamar a `MemoryGuard::unregisterThreadHandler(
 
 ```cpp
 #include <iostream>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 int main() {
     std::cout << "Iniciando ejemplo de un solo hilo..." << std::endl;
@@ -316,12 +316,12 @@ int main() {
         std::cout << "Sección protegida..." << std::endl;
         // Algún código que podría causar fallos de segmentación
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Excepción capturada: " << e.what() << std::endl;
     }
     
     // Si ya no necesitamos MemoryGuard, podemos liberar el registro del manejador
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     std::cout << "Continuando con el resto del programa..." << std::endl;
     // Resto del programa donde no necesitamos MemoryGuard
@@ -332,26 +332,26 @@ int main() {
 
 ### Aplicaciones Multi-Hilo
 
-En aplicaciones multi-hilo, es importante llamar a `MemoryGuard::unregisterThreadHandler()` al final de cada función de hilo para evitar fugas de recursos. Esto es especialmente importante para hilos de trabajo que se crean y destruyen con frecuencia.
+En aplicaciones multi-hilo, es importante llamar a `memory_guard.hpp|memory_guard::unregisterThreadHandler()` al final de cada función de hilo para evitar fugas de recursos. Esto es especialmente importante para hilos de trabajo que se crean y destruyen con frecuencia.
 
 Es crucial entender que la función main también se ejecuta en un hilo (el "hilo principal"). Si el hilo principal usa MemoryGuard directamente, también debe llamar a `unregisterThreadHandler()` antes de finalizar para evitar fugas de memoria que serían detectadas por herramientas como Valgrind.
 
 ```cpp
 #include <iostream>
 #include <thread>
-#include "MemoryGuard.hpp"
+#include "memory_guard.hpp|memory_guard::"
 
 void hilo_trabajador() {
     // Código del hilo usando MemoryGuard
     _try {
         // Algún código que podría causar fallos de segmentación
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Hilo trabajador capturó excepción: " << e.what() << std::endl;
     }
     
     // Limpiar recursos del hilo
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
 }
 
 int main() {
@@ -362,7 +362,7 @@ int main() {
     _try {
         // Algún código en el hilo principal que podría causar fallos de segmentación
     }
-    _catch(MemoryGuard::InvalidMemoryAccessException, e) {
+    _catch(memory_guard.hpp|memory_guard::InvalidMemoryAccessException, e) {
         std::cerr << "Hilo principal capturó excepción: " << e.what() << std::endl;
     }
     
@@ -370,7 +370,7 @@ int main() {
     t.join();
     
     // Limpiar recursos del hilo principal
-    MemoryGuard::unregisterThreadHandler();
+    memory_guard.hpp|memory_guard::unregisterThreadHandler();
     
     return 0;
 }
@@ -400,7 +400,7 @@ Cuando se captura un fallo de segmentación, MemoryGuard lanza una excepción pe
 
 ## Notas Importantes
 
-1. En aplicaciones multi-hilo, siempre libere el registro de los manejadores de hilo cuando finalice el uso de los hilos mediante `MemoryGuard::unregisterThreadHandler()`.
+1. En aplicaciones multi-hilo, siempre libere el registro de los manejadores de hilo cuando finalice el uso de los hilos mediante `memory_guard.hpp|memory_guard::unregisterThreadHandler()`.
 2. En aplicaciones de un solo hilo, liberar el registro es opcional pero recomendado si MemoryGuard solo se usa en secciones específicas.
 3. Las macros `_try` y `_catch` deben usarse juntas, similar a los bloques try-catch estándar.
 4. MemoryGuard está diseñado para propósitos de desarrollo y depuración. En entornos de producción, generalmente es mejor corregir los problemas subyacentes de acceso a memoria en lugar de depender de la captura de fallos de segmentación.

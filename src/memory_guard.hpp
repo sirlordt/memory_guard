@@ -18,7 +18,7 @@
 #include <memory>  // For std::shared_ptr and std::make_shared
 #include <stack>   // For std::stack
 
-namespace MemoryGuard {
+namespace memory_guard {
 
 // Custom exception for invalid memory accesses
 class InvalidMemoryAccessException : public std::exception {
@@ -239,12 +239,12 @@ inline void segvTryBlock(const std::function<void()> &block)
     currentThreadContext->active = false;
 }
 
-} // namespace MemoryGuard
+} // namespace memory_guard
 
 // _try and _catch macros
 #define _try \
     try      \
-    { MemoryGuard::segvTryBlock([&]()
+    { memory_guard::segvTryBlock([&]()
 
 #define _catch(type, var)                                                                                                                  \
                                                                                                                                         ); \
